@@ -95,7 +95,7 @@ async function generateTitles(videoTitle, script) {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-api-key": anthropicKey },
     body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
       max_tokens: 1000,
       system: `You are a YouTube Shorts title expert for Switch and Click, a tech channel (keyboards, displays, home lab, Linux, self-hosting, networking) with 1.3M subscribers. Audience is 95% male, age 35-40, analytical and practical.\n\nTitle principles:\n- Under 60 characters ideally\n- Strong hook in the first few words\n- Avoid clickbait that doesn't deliver\n- Self-deprecating, relatable tone works well\n- Use curiosity gaps, bold claims, questions, or relatable pain\n- No word "honestly"\n- Natural language, not punchy fragment style\n\nReturn ONLY a valid JSON array of exactly 10 objects. No markdown, no backticks, no preamble:\n[{"title":"...","technique":"Bold Claim"},...]\n\nTechnique options: Question, Bold Claim, Curiosity Gap, How-to, Number List, Controversy, Relatable Pain, Tutorial, Comparison, Warning / Mistake`,
       messages: [{ role: "user", content: `Working title: "${videoTitle}"\n\nScript:\n${script}\n\nGenerate 10 YouTube Shorts title suggestions.` }]
@@ -119,8 +119,14 @@ async function logToNotion(videoTitle, suggestions, chosenTitle, chosenIdx) {
   await notionReq("POST", "/pages", { parent: { database_id: TITLE_LOG_DB }, properties: props });
 }
 
-async function updateProductionTitle(pageId, chosenTitle) {
-  await notionReq("PATCH", `/pages/${pageId}`, { properties: { "Video title": { title: [{ text: { content: chosenTitle } }] } } });
+async function prependTitleToPage(pageId, chosenTitle) {
+  await notionReq("PATCH", `/blocks/${pageId}/children`, {
+    children: [{
+      object: "block",
+      type: "heading_1",
+      heading_1: { rich_text: [{ type: "text", text: { content: chosenTitle } }] }
+    }]
+  });
 }
 
 function renderSkeletons() {
@@ -167,8 +173,11 @@ async function confirmTitle() {
   if (!chosenTitle) return;
   document.getElementById("app").innerHTML = `<div class="loading-state"><div class="spinner"></div><div class="loading-text">Locking in title and logging...</div></div>`;
   try {
-    await Promise.all([logToNotion(state.videoTitle, state.suggestions, chosenTitle, chosenIdx), updateProductionTitle(state.pageId, chosenTitle)]);
-    document.getElementById("app").innerHTML = `<div class="success-state"><div class="success-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M4.5 11l4.5 4.5 8.5-9" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="success-title">Title locked in</div><div class="success-chosen">${chosenTitle}</div><div class="success-sub">Logged to Title Suggestion Log and updated on the production page.</div></div>`;
+    await Promise.all([
+      logToNotion(state.videoTitle, state.suggestions, chosenTitle, chosenIdx),
+      prependTitleToPage(state.pageId, chosenTitle)
+    ]);
+    document.getElementById("app").innerHTML = `<div class="success-state"><div class="success-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M4.5 11l4.5 4.5 8.5-9" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="success-title">Title locked in</div><div class="success-chosen">${chosenTitle}</div><div class="success-sub">Logged to Title Suggestion Log and added to the top of the production page.</div></div>`;
   } catch(e) { state.error = "Something went wrong saving. Check your API keys and try refreshing."; renderApp(); }
 }
 
