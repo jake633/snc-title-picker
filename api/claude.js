@@ -1,21 +1,20 @@
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-notion-key, x-notion-path, x-notion-method');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-api-key');
   if (req.method === 'OPTIONS') return res.status(200).end();
-  const notionKey = req.headers['x-notion-key'];
-  const notionPath = req.headers['x-notion-path'];
-  const notionMethod = req.headers['x-notion-method'] || 'GET';
-  if (!notionKey || !notionPath) return res.status(400).json({ error: 'Missing headers' });
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  const apiKey = req.headers['x-api-key'];
+  if (!apiKey) return res.status(400).json({ error: 'Missing API key' });
   try {
-    const response = await fetch(`https://api.notion.com/v1${notionPath}`, {
-      method: notionMethod,
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
       headers: {
-        'Authorization': `Bearer ${notionKey}`,
         'Content-Type': 'application/json',
-        'Notion-Version': '2022-06-28'
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
       },
-      body: notionMethod !== 'GET' ? JSON.stringify(req.body) : undefined
+      body: JSON.stringify(req.body)
     });
     const data = await response.json();
     res.status(response.status).json(data);
