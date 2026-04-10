@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shorts Title Picker</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f5f3; min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; padding: 2rem 1rem; }
+  .container { background: #fff; border-radius: 16px; border: 1px solid #e5e5e0; padding: 2rem; width: 100%; max-width: 640px; }
+  .header { margin-bottom: 1.5rem; }
+  .label { font-size: 12px; font-weight: 500; color: #888; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 4px; }
+  .video-title { font-size: 20px; font-weight: 500; color: #1a1a1a; line-height: 1.3; }
+  .section-label { font-size: 12px; font-weight: 500; color: #888; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 10px; }
+  .titles-grid { display: flex; flex-direction: column; gap: 8px; margin-bottom: 1.5rem; }
+  .title-card { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: #fff; border: 1px solid #e5e5e0; border-radius: 12px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+  .title-card:hover { border-color: #bbb; }
+  .title-card.selected { border: 2px solid #378ADD; background: #EBF4FD; }
+  .title-num { font-size: 12px; font-weight: 500; color: #bbb; min-width: 18px; }
+  .title-card.selected .title-num { color: #185FA5; }
+  .title-text { font-size: 14px; color: #1a1a1a; line-height: 1.4; flex: 1; }
+  .title-technique { font-size: 11px; color: #888; background: #f5f5f3; border: 1px solid #e5e5e0; border-radius: 4px; padding: 2px 7px; white-space: nowrap; flex-shrink: 0; }
+  .title-card.selected .title-technique { background: #B5D4F4; color: #0C447C; border-color: #85B7EB; }
+  .divider { display: flex; align-items: center; gap: 10px; margin: 1.25rem 0; }
+  .divider-line { flex: 1; height: 1px; background: #e5e5e0; }
+  .divider-text { font-size: 12px; color: #bbb; }
+  .custom-input { width: 100%; padding: 11px 14px; font-size: 14px; font-family: inherit; background: #fff; border: 1px solid #e5e5e0; border-radius: 12px; color: #1a1a1a; outline: none; transition: border-color 0.15s, box-shadow 0.15s; }
+  .custom-input:focus { border-color: #378ADD; box-shadow: 0 0 0 3px rgba(55,138,221,0.12); }
+  .confirm-btn { width: 100%; margin-top: 1rem; padding: 13px; font-size: 14px; font-weight: 500; font-family: inherit; background: #1a1a1a; color: #fff; border: none; border-radius: 12px; cursor: pointer; transition: opacity 0.15s; }
+  .confirm-btn:hover { opacity: 0.85; }
+  .confirm-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .loading-state { text-align: center; padding: 3rem 1rem; }
+  .spinner { width: 28px; height: 28px; border: 2px solid #e5e5e0; border-top-color: #378ADD; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 14px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 14px; color: #888; }
+  .success-state { text-align: center; padding: 3rem 1rem; }
+  .success-icon { width: 44px; height: 44px; background: #f0faf4; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; }
+  .success-title { font-size: 17px; font-weight: 500; color: #1a1a1a; margin-bottom: 8px; }
+  .success-chosen { font-size: 14px; color: #444; margin-bottom: 16px; line-height: 1.4; }
+  .success-sub { font-size: 13px; color: #888; }
+  .error-banner { background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #b91c1c; margin-bottom: 1rem; }
+  .skeleton { background: #f0efe9; border-radius: 6px; animation: pulse 1.3s ease-in-out infinite; display: inline-block; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .config-screen { padding: 1rem 0; }
+  .config-screen h2 { font-size: 18px; font-weight: 500; margin-bottom: 8px; color: #1a1a1a; }
+  .config-screen p { font-size: 14px; color: #666; margin-bottom: 1.5rem; line-height: 1.6; }
+  .config-field { margin-bottom: 1rem; }
+  .config-field label { display: block; font-size: 13px; font-weight: 500; color: #444; margin-bottom: 6px; }
+  .config-field input { width: 100%; padding: 10px 14px; font-size: 14px; font-family: inherit; background: #fff; border: 1px solid #e5e5e0; border-radius: 10px; color: #1a1a1a; outline: none; }
+  .config-field input:focus { border-color: #378ADD; box-shadow: 0 0 0 3px rgba(55,138,221,0.12); }
+  .save-btn { width: 100%; padding: 12px; font-size: 14px; font-weight: 500; font-family: inherit; background: #1a1a1a; color: #fff; border: none; border-radius: 12px; cursor: pointer; margin-top: 0.5rem; }
+  .save-btn:hover { opacity: 0.85; }
+</style>
+</head>
+<body>
+<div class="container" id="app">
+  <div class="loading-state">
+    <div class="spinner"></div>
+    <div class="loading-text">Starting up...</div>
+  </div>
+</div>
+
+<script>
+const TITLE_LOG_DB = "a0832519-2c51-49b3-898b-66bb104ac0da";
+
+let state = {
+  pageId: null,
+  videoTitle: "",
+  script: "",
+  suggestions: [],
+  selectedIdx: null,
+  customTitle: "",
+  error: null
+};
+
+function getConfig() {
+  return {
+    anthropicKey: localStorage.getItem("snc_anthropic_key") || "",
+    notionKey: localStorage.getItem("snc_notion_key") || ""
+  };
+}
+
+function saveConfig(anthropicKey, notionKey) {
+  localStorage.setItem("snc_anthropic_key", anthropicKey);
+  localStorage.setItem("snc_notion_key", notionKey);
+}
+
+async function notionRequest(method, path, body) {
+  const { notionKey } = getConfig();
+  const res = await fetch(`https://api.notion.com/v1${path}`, {
+    method,
+    headers: {
+      "Authorization": `Bearer ${notionKey}`,
+      "Content-Type": "application/json",
+      "Notion-Version": "2022-06-28"
+    },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || `Notion error ${res.status}`);
+  }
+  return res.json();
+}
+
+async function fetchNotionPage(pageId) {
+  const [pageData, blocksData] = await Promise.all([
+    notionRequest("GET", `/pages/${pageId}`),
+    notionRequest("GET", `/blocks/${pageId}/children?page_size=100`)
+  ]);
+  const title = pageData.properties?.["Video title"]?.title?.[0]?.plain_text || "Untitled Short";
+  const script = blocksData.results
+    .map(b => {
+      const type = b.type;
+      const rich = b[type]?.rich_text;
+      return rich ? rich.map(r => r.plain_text).join("") : "";
+    })
+    .filter(Boolean)
+    .join("\n");
+  return { title, script };
+}
+
+async function generateTitles(videoTitle, script) {
+  const { anthropicKey } = getConfig();
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": anthropicKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true"
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 1000,
+      system: `You are a YouTube Shorts title expert for Switch and Click, a tech channel (keyboards, displays, home lab, Linux, self-hosting, networking) with 1.3M subscribers. Audience is 95% male, age 35-40, analytical and practical.
+
+Title principles:
+- Under 60 characters ideally
+- Strong hook in the first few words
+- Avoid clickbait that doesn't deliver
+- Self-deprecating, relatable tone works well
+- Use curiosity gaps, bold claims, questions, or relatable pain
+- No word "honestly"
+- Natural language, not punchy fragment style
+
+Return ONLY a valid JSON array of exactly 10 objects. No markdown, no backticks, no preamble:
+[{"title":"...","technique":"Bold Claim"},...]
+
+Technique options: Question, Bold Claim, Curiosity Gap, How-to, Number List, Controversy, Relatable Pain, Tutorial, Comparison, Warning / Mistake`,
+      messages: [{
+        role: "user",
+        content: `Working title: "${videoTitle}"\n\nScript:\n${script}\n\nGenerate 10 YouTube Shorts title suggestions.`
+      }]
+    })
+  });
+  const data = await res.json();
+  const text = data.content?.find(b => b.type === "text")?.text || "";
+  try {
+    return JSON.parse(text.replace(/```json|```/g, "").trim());
+  } catch {
+    return [];
+  }
+}
+
+async function logToNotion(videoTitle, suggestions, chosenTitle, chosenIdx) {
+  const props = {
+    "Short Topic": { title: [{ text: { content: videoTitle } }] },
+    "Chosen Title": { rich_text: [{ text: { content: chosenTitle } }] },
+    "Chosen #": { number: chosenIdx },
+    "Status": { select: { name: "Brainstorming" } }
+  };
+  suggestions.forEach((s, i) => {
+    props[`Suggestion ${i + 1}`] = { rich_text: [{ text: { content: s.title } }] };
+  });
+  const chosen = chosenIdx > 0 ? suggestions[chosenIdx - 1] : null;
+  if (chosen?.technique) {
+    props["Title Technique"] = { multi_select: [{ name: chosen.technique }] };
+  }
+  await notionRequest("POST", "/pages", {
+    parent: { database_id: TITLE_LOG_DB },
+    properties: props
+  });
+}
+
+async function updateProductionTitle(pageId, chosenTitle) {
+  await notionRequest("PATCH", `/pages/${pageId}`, {
+    properties: {
+      "Video title": { title: [{ text: { content: chosenTitle } }] }
+    }
+  });
+}
+
+function renderSkeletons() {
+  return Array.from({length: 10}, (_, i) => `
+    <div class="title-card" style="pointer-events:none; opacity:0.6">
+      <span class="skeleton" style="width:14px;height:12px;border-radius:3px"></span>
+      <span class="skeleton" style="height:12px;width:${55 + (i % 5) * 8}%;border-radius:3px"></span>
+    </div>
+  `).join("");
+}
+
+function renderApp() {
+  const app = document.getElementById("app");
+  app.innerHTML = `
+    <div class="header">
+      <div class="label">Shorts title tool</div>
+      <div class="video-title">${state.videoTitle}</div>
+    </div>
+    ${state.error ? `<div class="error-banner">${state.error}</div>` : ""}
+    <div class="section-label">Suggestions</div>
+    <div class="titles-grid" id="titlesGrid">
+      ${state.suggestions.length === 0 ? renderSkeletons() : state.suggestions.map((s, i) => `
+        <div class="title-card ${state.selectedIdx === i + 1 ? "selected" : ""}" onclick="selectTitle(${i + 1})" data-idx="${i + 1}">
+          <span class="title-num">${i + 1}</span>
+          <span class="title-text">${s.title}</span>
+          <span class="title-technique">${s.technique}</span>
+        </div>
+      `).join("")}
+    </div>
+    <div class="divider">
+      <div class="divider-line"></div>
+      <div class="divider-text">or write your own</div>
+      <div class="divider-line"></div>
+    </div>
+    <input class="custom-input" id="customInput" type="text" placeholder="Write a custom title..." value="${state.customTitle}" oninput="handleCustomInput(this.value)" />
+    <button class="confirm-btn" id="confirmBtn" onclick="confirmTitle()" ${!state.selectedIdx && !state.customTitle.trim() ? "disabled" : ""}>
+      Confirm title
+    </button>
+  `;
+}
+
+function selectTitle(idx) {
+  state.selectedIdx = idx;
+  state.customTitle = "";
+  const input = document.getElementById("customInput");
+  if (input) input.value = "";
+  document.querySelectorAll(".title-card").forEach(c => c.classList.remove("selected"));
+  document.querySelector(`[data-idx="${idx}"]`)?.classList.add("selected");
+  document.getElementById("confirmBtn").disabled = false;
+}
+
+function handleCustomInput(val) {
+  state.customTitle = val;
+  state.selectedIdx = null;
+  document.querySelectorAll(".title-card").forEach(c => c.classList.remove("selected"));
+  document.getElementById("confirmBtn").disabled = !val.trim();
+}
+
+async function confirmTitle() {
+  const chosenTitle = state.customTitle.trim() || state.suggestions[state.selectedIdx - 1]?.title;
+  const chosenIdx = state.customTitle.trim() ? 0 : state.selectedIdx;
+  if (!chosenTitle) return;
+
+  document.getElementById("app").innerHTML = `
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <div class="loading-text">Locking in title and logging...</div>
+    </div>
+  `;
+
+  try {
+    await Promise.all([
+      logToNotion(state.videoTitle, state.suggestions, chosenTitle, chosenIdx),
+      updateProductionTitle(state.pageId, chosenTitle)
+    ]);
+    document.getElementById("app").innerHTML = `
+      <div class="success-state">
+        <div class="success-icon">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+            <path d="M4.5 11l4.5 4.5 8.5-9" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="success-title">Title locked in</div>
+        <div class="success-chosen">${chosenTitle}</div>
+        <div class="success-sub">Logged to Title Suggestion Log and updated on the production page.</div>
+      </div>
+    `;
+  } catch(e) {
+    state.error = "Something went wrong saving. Check your API keys and try refreshing.";
+    renderApp();
+  }
+}
+
+function renderConfigScreen() {
+  const app = document.getElementById("app");
+  app.innerHTML = `
+    <div class="config-screen">
+      <h2>Setup required</h2>
+      <p>Enter your API keys to get started. These are saved locally in your browser and never sent anywhere except the respective APIs.</p>
+      <div class="config-field">
+        <label>Anthropic API key</label>
+        <input type="password" id="anthropicKeyInput" placeholder="sk-ant-..." />
+      </div>
+      <div class="config-field">
+        <label>Notion integration token</label>
+        <input type="password" id="notionKeyInput" placeholder="secret_..." />
+      </div>
+      <button class="save-btn" onclick="saveAndInit()">Save and continue</button>
+    </div>
+  `;
+}
+
+function saveAndInit() {
+  const ak = document.getElementById("anthropicKeyInput").value.trim();
+  const nk = document.getElementById("notionKeyInput").value.trim();
+  if (!ak || !nk) return;
+  saveConfig(ak, nk);
+  init();
+}
+
+async function init() {
+  const { anthropicKey, notionKey } = getConfig();
+  if (!anthropicKey || !notionKey) {
+    renderConfigScreen();
+    return;
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const pageId = params.get("page_id");
+
+  if (!pageId) {
+    document.getElementById("app").innerHTML = `
+      <div class="loading-state">
+        <div class="loading-text" style="color:#b91c1c">No page_id in URL. This link should come from Zapier.</div>
+      </div>
+    `;
+    return;
+  }
+
+  state.pageId = pageId;
+  document.getElementById("app").innerHTML = `<div class="loading-state"><div class="spinner"></div><div class="loading-text" id="loadingText">Fetching script...</div></div>`;
+
+  try {
+    const { title, script } = await fetchNotionPage(pageId);
+    state.videoTitle = title;
+    state.script = script;
+    document.getElementById("loadingText").textContent = "Generating title suggestions...";
+    renderApp();
+    state.suggestions = await generateTitles(title, script);
+    renderApp();
+  } catch(e) {
+    document.getElementById("app").innerHTML = `
+      <div class="loading-state">
+        <div class="loading-text" style="color:#b91c1c">Error: ${e.message}</div>
+      </div>
+    `;
+  }
+}
+
+init();
+</script>
+</body>
+</html>
