@@ -56,7 +56,7 @@
 </div>
 <script>
 const TITLE_LOG_DB = "6bc0054ff7724c1ba088cef191c49b61";
- 
+
 let state = { pageId: null, videoTitle: "", script: "", suggestions: [], selectedIdx: null, customTitle: "", error: null };
 
 function getConfig() {
@@ -116,17 +116,8 @@ async function logToNotion(videoTitle, suggestions, chosenTitle, chosenIdx) {
   suggestions.forEach((s, i) => { props[`Suggestion ${i + 1}`] = { rich_text: [{ text: { content: s.title } }] }; });
   const chosen = chosenIdx > 0 ? suggestions[chosenIdx - 1] : null;
   if (chosen?.technique) props["Title Technique"] = { multi_select: [{ name: chosen.technique }] };
+  if (state.pageId) props["Production Page"] = { relation: [{ id: state.pageId }] };
   await notionReq("POST", "/pages", { parent: { database_id: TITLE_LOG_DB }, properties: props });
-}
-
-async function prependTitleToPage(pageId, chosenTitle) {
-  await notionReq("PATCH", `/blocks/${pageId}/children`, {
-    children: [{
-      object: "block",
-      type: "heading_1",
-      heading_1: { rich_text: [{ type: "text", text: { content: chosenTitle } }] }
-    }]
-  });
 }
 
 function renderSkeletons() {
@@ -173,11 +164,8 @@ async function confirmTitle() {
   if (!chosenTitle) return;
   document.getElementById("app").innerHTML = `<div class="loading-state"><div class="spinner"></div><div class="loading-text">Locking in title and logging...</div></div>`;
   try {
-    await Promise.all([
-      logToNotion(state.videoTitle, state.suggestions, chosenTitle, chosenIdx),
-      prependTitleToPage(state.pageId, chosenTitle)
-    ]);
-    document.getElementById("app").innerHTML = `<div class="success-state"><div class="success-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M4.5 11l4.5 4.5 8.5-9" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="success-title">Title locked in</div><div class="success-chosen">${chosenTitle}</div><div class="success-sub">Logged to Title Suggestion Log and added to the top of the production page.</div></div>`;
+    await logToNotion(state.videoTitle, state.suggestions, chosenTitle, chosenIdx);
+    document.getElementById("app").innerHTML = `<div class="success-state"><div class="success-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M4.5 11l4.5 4.5 8.5-9" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="success-title">Title locked in</div><div class="success-chosen">${chosenTitle}</div><div class="success-sub">Logged to Title Suggestion Log.</div></div>`;
   } catch(e) { state.error = "Something went wrong saving. Check your API keys and try refreshing."; renderApp(); }
 }
 
@@ -187,7 +175,7 @@ function renderConfigScreen() {
       <h2>Setup required</h2>
       <p>Enter your API keys to get started. These are saved in your browser and never shared.</p>
       <div class="config-field"><label>Anthropic API key</label><input type="password" id="akInput" placeholder="sk-ant-..." /></div>
-      <div class="config-field"><label>Notion integration token</label><input type="password" id="nkInput" placeholder="secret_..." /></div>
+      <div class="config-field"><label>Notion integration token</label><input type="password" id="nkInput" placeholder="ntn_..." /></div>
       <button class="save-btn" onclick="saveAndInit()">Save and continue</button>
     </div>
   `;
