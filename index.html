@@ -118,8 +118,7 @@ async function logToNotion(videoTitle, suggestions, chosenTitle, chosenIdx) {
   const props = {
     "Short Topic": { title: [{ text: { content: videoTitle } }] },
     "Chosen Title": { rich_text: [{ text: { content: chosenTitle } }] },
-    "Chosen #": { number: chosenIdx },
-    "Status": { select: { name: "Brainstorming" } }
+    "Chosen #": { number: chosenIdx }
   };
   suggestions.forEach((s, i) => { props[`Suggestion ${i + 1}`] = { rich_text: [{ text: { content: s.title } }] }; });
   const chosen = chosenIdx > 0 ? suggestions[chosenIdx - 1] : null;
