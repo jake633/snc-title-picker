@@ -145,6 +145,12 @@ function renderApp() {
 }
 
 function selectTitle(idx) {
+  if (state.selectedIdx === idx) {
+    state.selectedIdx = null;
+    document.querySelector(`[data-idx="${idx}"]`)?.classList.remove("selected");
+    document.getElementById("confirmBtn").disabled = !state.customTitle.trim();
+    return;
+  }
   state.selectedIdx = idx; state.customTitle = "";
   const input = document.getElementById("customInput"); if (input) input.value = "";
   document.querySelectorAll(".title-card").forEach(c => c.classList.remove("selected"));
