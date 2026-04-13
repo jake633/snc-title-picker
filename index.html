@@ -120,6 +120,16 @@ async function logToNotion(videoTitle, suggestions, chosenTitle, chosenIdx) {
   await notionReq("POST", "/pages", { parent: { database_id: TITLE_LOG_DB }, properties: props });
 }
 
+async function appendTitleToPage(pageId, chosenTitle) {
+  await notionReq("PATCH", `/blocks/${pageId}/children`, {
+    children: [{
+      object: "block",
+      type: "heading_1",
+      heading_1: { rich_text: [{ type: "text", text: { content: chosenTitle } }] }
+    }]
+  });
+}
+
 function renderSkeletons() {
   return Array.from({length: 10}, (_, i) => `<div class="title-card" style="pointer-events:none;opacity:0.6"><span class="skeleton" style="width:14px;height:12px;border-radius:3px"></span><span class="skeleton" style="height:12px;width:${55+(i%5)*8}%;border-radius:3px;margin-left:12px"></span></div>`).join("");
 }
@@ -170,8 +180,11 @@ async function confirmTitle() {
   if (!chosenTitle) return;
   document.getElementById("app").innerHTML = `<div class="loading-state"><div class="spinner"></div><div class="loading-text">Locking in title and logging...</div></div>`;
   try {
-    await logToNotion(state.videoTitle, state.suggestions, chosenTitle, chosenIdx);
-    document.getElementById("app").innerHTML = `<div class="success-state"><div class="success-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M4.5 11l4.5 4.5 8.5-9" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="success-title">Title locked in</div><div class="success-chosen">${chosenTitle}</div><div class="success-sub">Logged to Title Suggestion Log.</div></div>`;
+    await Promise.all([
+      logToNotion(state.videoTitle, state.suggestions, chosenTitle, chosenIdx),
+      appendTitleToPage(state.pageId, chosenTitle)
+    ]);
+    document.getElementById("app").innerHTML = `<div class="success-state"><div class="success-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M4.5 11l4.5 4.5 8.5-9" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="success-title">Title locked in</div><div class="success-chosen">${chosenTitle}</div><div class="success-sub">Logged to Title Suggestion Log and added to the production page.</div></div>`;
   } catch(e) { state.error = "Something went wrong saving. Check your API keys and try refreshing."; renderApp(); }
 }
 
